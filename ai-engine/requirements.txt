@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+pdfplumber
+scikit-learn
+langchain
+langchain-community
+langchain-openai
+faiss-cpu
+sentence-transformers
+python-multipart
+motor
+python-dotenv
+hypothesis
+fpdf2
+pytest
+pytest-asyncio
+numpy

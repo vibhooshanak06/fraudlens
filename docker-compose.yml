@@ -1,0 +1,64 @@
+version: "3.9"
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: fraudlens-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: fraudlens
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fraudlens-backend
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      MONGO_URI: mongodb://mongodb:27017/fraudlens
+      AI_ENGINE_URL: http://ai-engine:8000
+    depends_on:
+      - mongodb
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - uploads_data:/app/uploads
+
+  ai-engine:
+    build:
+      context: ./ai-engine
+      dockerfile: Dockerfile
+    container_name: fraudlens-ai-engine
+    ports:
+      - "8000:8000"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/fraudlens
+      FAISS_STORE_PATH: /app/faiss_indexes
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      - mongodb
+    volumes:
+      - ./ai-engine:/app
+      - faiss_data:/app/faiss_indexes
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fraudlens-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:4000
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
+  uploads_data:
+  faiss_data:
