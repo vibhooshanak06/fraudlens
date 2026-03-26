@@ -1,6 +1,22 @@
 version: "3.9"
 
 services:
+  mysql:
+    image: mysql:8
+    container_name: fraudlens-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: vibhoo@83139
+      MYSQL_DATABASE: fraudlens
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pvibbhoo@83139"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   mongodb:
     image: mongo:7
     container_name: fraudlens-mongo
@@ -20,10 +36,19 @@ services:
       - "4000:4000"
     environment:
       PORT: 4000
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASSWORD: vibhoo@83139
+      MYSQL_DB: fraudlens
       MONGO_URI: mongodb://mongodb:27017/fraudlens
       AI_ENGINE_URL: http://ai-engine:8000
+      JWT_SECRET: fraudlens_jwt_secret_2024_xK9mP3qR
+      JWT_EXPIRES_IN: 7d
     depends_on:
-      - mongodb
+      mysql:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -39,7 +64,7 @@ services:
     environment:
       MONGO_URI: mongodb://mongodb:27017/fraudlens
       FAISS_STORE_PATH: /app/faiss_indexes
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
     depends_on:
       - mongodb
     volumes:
@@ -53,12 +78,11 @@ services:
     container_name: fraudlens-frontend
     ports:
       - "3000:3000"
-    environment:
-      VITE_API_URL: http://localhost:4000
     depends_on:
       - backend
 
 volumes:
+  mysql_data:
   mongo_data:
   uploads_data:
   faiss_data:
