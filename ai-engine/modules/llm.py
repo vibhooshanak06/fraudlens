@@ -9,17 +9,17 @@ import urllib.error
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_BASE = "https://openrouter.ai/api/v1"
-# Free model on OpenRouter
-MODEL = "meta-llama/llama-3.1-8b-instruct:free"
+# Free models on OpenRouter — primary + fallback
+MODEL = os.getenv("OPENROUTER_MODEL", "mistralai/mistral-small-3.1-24b-instruct:free")
+FALLBACK_MODEL = "meta-llama/llama-3.2-3b-instruct:free"
+FALLBACK_MODEL_2 = "nousresearch/hermes-3-llama-3.1-405b:free"
 EMBED_MODEL = "text-embedding-3-small"  # still use OpenAI for embeddings via OpenRouter
 
 
-def chat_completion(messages: list[dict], max_tokens: int = 800, temperature: float = 0.2) -> str:
-    """
-    Call OpenRouter chat completion. Returns the assistant message content.
-    """
+def _call_model(model: str, messages: list[dict], max_tokens: int, temperature: float) -> str:
+    """Make a single OpenRouter chat completion call with the given model."""
     payload = json.dumps({
-        "model": MODEL,
+        "model": model,
         "messages": messages,
         "max_tokens": max_tokens,
         "temperature": temperature,
@@ -37,15 +37,30 @@ def chat_completion(messages: list[dict], max_tokens: int = 800, temperature: fl
         method="POST",
     )
 
-    try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            return data["choices"][0]["message"]["content"]
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", errors="ignore")
-        raise RuntimeError(f"OpenRouter HTTP {e.code}: {body[:200]}")
-    except Exception as e:
-        raise RuntimeError(f"OpenRouter request failed: {e}")
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+        return data["choices"][0]["message"]["content"]
+
+
+def chat_completion(messages: list[dict], max_tokens: int = 800, temperature: float = 0.2) -> str:
+    """
+    Call OpenRouter chat completion. Tries models in order, skipping on 404/429.
+    """
+    models = [MODEL, FALLBACK_MODEL, FALLBACK_MODEL_2]
+    last_err = None
+    for model in models:
+        try:
+            return _call_model(model, messages, max_tokens, temperature)
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="ignore")
+            last_err = RuntimeError(f"OpenRouter HTTP {e.code} ({model}): {body[:200]}")
+            if e.code in (404, 429, 503):
+                continue  # try next model
+            raise last_err
+        except Exception as e:
+            last_err = RuntimeError(f"OpenRouter request failed ({model}): {e}")
+            continue
+    raise last_err or RuntimeError("All configured LLM models are unavailable")
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:

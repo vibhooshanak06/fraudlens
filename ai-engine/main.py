@@ -33,11 +33,20 @@ STOPWORDS = {"the","a","an","is","are","was","were","in","on","at","to","of","an
 
 def get_db():
     global _mongo_client, _db
-    if _db is None:
+    # Recreate client if not initialized or if previous connection failed
+    if _mongo_client is None:
         uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/fraudlens")
-        _mongo_client = AsyncIOMotorClient(uri)
+        _mongo_client = AsyncIOMotorClient(uri, serverSelectionTimeoutMS=5000)
         _db = _mongo_client["fraudlens"]
     return _db
+
+
+def reset_mongo():
+    global _mongo_client, _db
+    if _mongo_client:
+        _mongo_client.close()
+    _mongo_client = None
+    _db = None
 
 
 class ProcessRequest(BaseModel):
@@ -98,21 +107,25 @@ async def process(req: ProcessRequest):
     content_words = [w.strip(".,;:()[]\"'") for w in words if w.strip(".,;:()[]\"'") not in STOPWORDS and len(w.strip(".,;:()[]\"'")) > 3]
     keywords = [w for w, _ in Counter(content_words).most_common(10)]
 
-    # Step 3: Update MongoDB
-    try:
-        db = get_db()
-        await db["papers"].update_one(
-            {"uuid": req.uuid},
-            {"$set": {
-                "status": "completed",
-                "extracted_text": text[:5000],
-                "fraud_report": fraud_report,
-                "summary": summary,
-                "keywords": keywords,
-            }}
-        )
-    except Exception as e:
-        print(f"MongoDB update failed for {req.uuid}: {e}")
+    # Step 3: Update MongoDB (retry once on connection failure)
+    for attempt in range(2):
+        try:
+            db = get_db()
+            await db["papers"].update_one(
+                {"uuid": req.uuid},
+                {"$set": {
+                    "status": "completed",
+                    "extracted_text": text[:15000],
+                    "fraud_report": fraud_report,
+                    "summary": summary,
+                    "keywords": keywords,
+                }},
+                upsert=True
+            )
+            break  # success
+        except Exception as e:
+            print(f"MongoDB update failed for {req.uuid} (attempt {attempt+1}): {e}")
+            reset_mongo()  # force reconnect on next attempt
 
     return {
         "uuid": req.uuid,
