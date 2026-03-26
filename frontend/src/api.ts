@@ -69,6 +69,11 @@ export async function getRecommendations(query: string): Promise<{ results: Reco
     return res.data;
 }
 
+export async function reprocessPaper(uuid: string): Promise<{ uuid: string; status: string; message: string }> {
+    const res = await api.post(`/reprocess/${uuid}`);
+    return res.data;
+}
+
 // Types
 export interface User {
     id: number;
