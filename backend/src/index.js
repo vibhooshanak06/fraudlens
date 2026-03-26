@@ -20,6 +20,7 @@ app.use('/analyze', require('./routes/analyze'));
 app.use('/chat', require('./routes/chat'));
 app.use('/recommend', require('./routes/recommend'));
 app.use('/paper', require('./routes/paper'));
+app.use('/reprocess', require('./routes/reprocess'));
 app.use('/dashboard', require('./routes/dashboard'));
 
 // JSON parse error

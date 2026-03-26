@@ -32,4 +32,4 @@ const paperSchema = new mongoose.Schema({
   keywords: [String],
 });
 
-module.exports = mongoose.model('Paper', paperSchema);
+module.exports = mongoose.model('Paper', paperSchema, 'papers');
