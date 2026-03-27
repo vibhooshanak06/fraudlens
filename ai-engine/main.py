@@ -135,6 +135,50 @@ async def process(req: ProcessRequest):
     }
 
 
+@app.post("/reprocess-summary")
+async def reprocess_summary(req: ProcessRequest):
+    """Re-run summarization for an already-processed paper."""
+    text = None
+
+    # Prefer re-extracting from PDF if path is provided (gets fresh, properly-extracted text)
+    if req.pdf_path:
+        try:
+            text = extract_text(req.pdf_path)
+        except Exception as e:
+            print(f"PDF re-extraction failed, falling back to stored text: {e}")
+
+    # Fall back to stored extracted_text in MongoDB
+    if not text:
+        for attempt in range(2):
+            try:
+                db = get_db()
+                doc = await db["papers"].find_one({"uuid": req.uuid})
+                if doc and doc.get("extracted_text"):
+                    text = doc["extracted_text"]
+                break
+            except Exception as e:
+                reset_mongo()
+
+    if not text:
+        raise HTTPException(status_code=404, detail="No text found for this paper")
+
+    loop = asyncio.get_running_loop()
+    summary = await loop.run_in_executor(None, generate_summary, text)
+
+    for attempt in range(2):
+        try:
+            db = get_db()
+            await db["papers"].update_one(
+                {"uuid": req.uuid},
+                {"$set": {"summary": summary, "extracted_text": text[:15000]}}
+            )
+            break
+        except Exception as e:
+            reset_mongo()
+
+    return {"uuid": req.uuid, "summary": summary}
+
+
 @app.post("/chat")
 async def chat(req: ChatRequest):
     try:
