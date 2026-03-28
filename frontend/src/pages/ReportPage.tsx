@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPaper, reprocessPaper, PaperRecord } from '../api';
+import { getPaper, reprocessPaper, exportReportPdf, PaperRecord } from '../api';
 import FraudReportPanel from '../components/FraudReportPanel';
 import SummaryPanel from '../components/SummaryPanel';
 import ChatPanel from '../components/ChatPanel';
 import RecommendPanel from '../components/RecommendPanel';
+import CitationGraphPanel from '../components/CitationGraphPanel';
 import { colors, radius } from '../styles/tokens';
 
-type Tab = 'report' | 'chat' | 'recommendations';
+type Tab = 'report' | 'citations' | 'chat' | 'recommendations';
 
 export default function Dashboard() {
     const { uuid } = useParams<{ uuid: string }>();
@@ -17,6 +18,7 @@ export default function Dashboard() {
     const [error, setError] = useState<string | null>(null);
     const [tab, setTab] = useState<Tab>('report');
     const [retrying, setRetrying] = useState(false);
+    const [exporting, setExporting] = useState(false);
 
     // Single interval ref — only one poll loop ever runs
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -79,12 +81,35 @@ export default function Dashboard() {
         }
     }
 
+    async function handleExport() {
+        if (!uuid || exporting) return;
+        setExporting(true);
+        try {
+            await exportReportPdf(uuid);
+        } catch {
+            // silently fail — browser will show nothing
+        } finally {
+            setExporting(false);
+        }
+    }
+
     const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
         {
             id: 'report', label: 'Fraud Report', icon: (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                     <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.8" />
                     <path d="M8 17v-4M12 17v-7M16 17v-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+            )
+        },
+        {
+            id: 'citations', label: 'Citation Graph', icon: (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                    <circle cx="5" cy="12" r="2" stroke="currentColor" strokeWidth="1.8" />
+                    <circle cx="19" cy="5" r="2" stroke="currentColor" strokeWidth="1.8" />
+                    <circle cx="19" cy="19" r="2" stroke="currentColor" strokeWidth="1.8" />
+                    <line x1="7" y1="11" x2="17" y2="6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    <line x1="7" y1="13" x2="17" y2="18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
             )
         },
@@ -145,6 +170,16 @@ export default function Dashboard() {
                         <div style={s.scoreChip}>
                             {Math.round(paper.fraud_report.plagiarism_score * 100)}% plagiarism
                         </div>
+                        <button style={s.exportBtn} onClick={handleExport} disabled={exporting}>
+                            {exporting ? (
+                                <div style={s.exportSpinner} />
+                            ) : (
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            )}
+                            {exporting ? 'Exporting…' : 'Export PDF'}
+                        </button>
                     </div>
                 )}
             </div>
@@ -252,6 +287,11 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         )}
+                        {tab === 'citations' && (
+                            <div style={s.citationsLayout}>
+                                <CitationGraphPanel uuid={uuid!} />
+                            </div>
+                        )}
                         {tab === 'chat' && (
                             <div style={s.chatLayout}>
                                 <ChatPanel uuid={uuid!} />
@@ -353,5 +393,17 @@ const s: Record<string, React.CSSProperties> = {
     reportMain: {},
     reportSide: {},
     chatLayout: { maxWidth: 800, height: 'calc(100vh - 220px)' },
+    citationsLayout: { width: '100%' },
     recsLayout: { maxWidth: 900 },
+    exportBtn: {
+        display: 'flex', alignItems: 'center', gap: 6,
+        background: colors.bg.elevated, border: `1px solid ${colors.bg.border}`,
+        borderRadius: radius.md, color: colors.text.secondary, padding: '6px 12px',
+        fontSize: 12, fontWeight: 600, cursor: 'pointer',
+    },
+    exportSpinner: {
+        width: 12, height: 12, border: `2px solid ${colors.bg.border}`,
+        borderTopColor: colors.brand.primary, borderRadius: '50%',
+        animation: 'spin 0.7s linear infinite',
+    },
 };

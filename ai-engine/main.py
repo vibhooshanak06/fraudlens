@@ -15,6 +15,7 @@ from modules.embedder import build_index
 from modules.summarizer import generate_summary
 from modules.chatbot import answer as chatbot_answer
 from modules.recommender import recommend as do_recommend
+from modules.citation_checker import get_citation_graph
 
 app = FastAPI(title="FraudLens AI Engine")
 
@@ -115,7 +116,7 @@ async def process(req: ProcessRequest):
                 {"uuid": req.uuid},
                 {"$set": {
                     "status": "completed",
-                    "extracted_text": text[:15000],
+                    "extracted_text": text[:50000],
                     "fraud_report": fraud_report,
                     "summary": summary,
                     "keywords": keywords,
@@ -170,7 +171,7 @@ async def reprocess_summary(req: ProcessRequest):
             db = get_db()
             await db["papers"].update_one(
                 {"uuid": req.uuid},
-                {"$set": {"summary": summary, "extracted_text": text[:15000]}}
+                {"$set": {"summary": summary, "extracted_text": text[:50000]}}
             )
             break
         except Exception as e:
@@ -201,6 +202,41 @@ async def recommend(req: RecommendRequest):
         return {"results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Recommendation failed: {e}")
+
+
+@app.post("/citation-graph")
+async def citation_graph(req: ProcessRequest):
+    """Build citation graph from a paper's full text (re-extracts from PDF for complete references)."""
+    text = None
+
+    # Prefer PDF re-extraction — stored text may be truncated and miss the references section
+    if req.pdf_path:
+        try:
+            text = extract_text(req.pdf_path)
+        except Exception as e:
+            print(f"PDF re-extraction failed for citation graph {req.uuid}: {e}")
+
+    # Fall back to stored extracted_text
+    if not text:
+        for _ in range(2):
+            try:
+                db = get_db()
+                doc = await db["papers"].find_one({"uuid": req.uuid})
+                if doc and doc.get("extracted_text"):
+                    text = doc["extracted_text"]
+                break
+            except Exception:
+                reset_mongo()
+
+    if not text:
+        return {"uuid": req.uuid, "graph": {
+            "nodes": [], "edges": [], "rings": [],
+            "stats": {"total_references": 0, "co_citation_pairs": 0, "ring_count": 0}
+        }}
+
+    loop = asyncio.get_running_loop()
+    graph = await loop.run_in_executor(None, get_citation_graph, text)
+    return {"uuid": req.uuid, "graph": graph}
 
 
 if __name__ == "__main__":

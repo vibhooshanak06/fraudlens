@@ -74,6 +74,26 @@ export async function reprocessPaper(uuid: string): Promise<{ uuid: string; stat
     return res.data;
 }
 
+export function getExportPdfUrl(uuid: string): string {
+    const token = localStorage.getItem('fl_token');
+    return `${BASE_URL}/export/${uuid}/pdf?token=${token}`;
+}
+
+export async function exportReportPdf(uuid: string): Promise<void> {
+    const res = await api.get(`/export/${uuid}/pdf`, { responseType: 'blob' });
+    const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fraudlens-report-${uuid.slice(0, 8)}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+export async function getCitationGraph(uuid: string): Promise<CitationGraph> {
+    const res = await api.get(`/citation/${uuid}/graph`);
+    return res.data.graph;
+}
+
 // Types
 export interface User {
     id: number;
@@ -138,4 +158,32 @@ export interface PaperRecord extends PaperMeta {
     fraud_report?: FraudReport;
     summary?: Summary;
     keywords?: string[];
+}
+
+export interface CitationNode {
+    id: string;
+    label: string;
+}
+
+export interface CitationEdge {
+    source: string;
+    target: string;
+    weight: number;
+}
+
+export interface CitationRing {
+    members: string[];
+    size: number;
+    description: string;
+}
+
+export interface CitationGraph {
+    nodes: CitationNode[];
+    edges: CitationEdge[];
+    rings: CitationRing[];
+    stats: {
+        total_references: number;
+        co_citation_pairs: number;
+        ring_count: number;
+    };
 }
