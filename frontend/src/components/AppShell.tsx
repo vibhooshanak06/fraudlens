@@ -122,7 +122,7 @@ export default function AppShell({ children }: Props) {
 
                     {showUserMenu && (
                         <div style={s.userMenu}>
-                            <button style={s.userMenuItem} onClick={() => { setShowUserMenu(false); }}>
+                            <button style={s.userMenuItem} onClick={() => { setShowUserMenu(false); navigate('/profile'); }}>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="1.8" /></svg>
                                 Profile settings
                             </button>

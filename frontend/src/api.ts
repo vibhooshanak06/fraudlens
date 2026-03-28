@@ -79,6 +79,15 @@ export function getExportPdfUrl(uuid: string): string {
     return `${BASE_URL}/export/${uuid}/pdf?token=${token}`;
 }
 
+export async function updateProfile(name: string): Promise<{ name: string; avatar: string }> {
+    const res = await api.put('/profile', { name });
+    return res.data;
+}
+
+export async function updatePassword(current_password: string, new_password: string): Promise<void> {
+    await api.put('/profile/password', { current_password, new_password });
+}
+
 export async function exportReportPdf(uuid: string): Promise<void> {
     const res = await api.get(`/export/${uuid}/pdf`, { responseType: 'blob' });
     const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
