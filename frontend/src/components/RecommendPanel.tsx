@@ -93,7 +93,12 @@ export default function RecommendPanel({ keywords }: Props) {
 
             {!loading && !searched && (
                 <div style={s.emptyState}>
-                    <div style={s.emptyIcon}>📚</div>
+                    <div style={s.emptyIcon}>
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                            <path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={colors.text.muted} strokeWidth="1.5" strokeLinecap="round" />
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={colors.text.muted} strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                    </div>
                     <div style={s.emptyTitle}>Find related research</div>
                     <div style={s.emptyDesc}>Enter a topic or keyword above to discover semantically similar papers from our corpus.</div>
                 </div>
@@ -134,7 +139,13 @@ export default function RecommendPanel({ keywords }: Props) {
 
             {!loading && searched && results.length === 0 && !error && (
                 <div style={s.emptyState}>
-                    <div style={s.emptyIcon}>🔍</div>
+                    <div style={s.emptyIcon}>
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                            <circle cx="11" cy="11" r="8" stroke={colors.text.muted} strokeWidth="1.5" />
+                            <path d="M21 21l-4.35-4.35" stroke={colors.text.muted} strokeWidth="1.5" strokeLinecap="round" />
+                            <line x1="8" y1="11" x2="14" y2="11" stroke={colors.text.muted} strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                    </div>
                     <div style={s.emptyTitle}>No results found</div>
                     <div style={s.emptyDesc}>Try different keywords or a broader search term.</div>
                 </div>
@@ -179,7 +190,7 @@ const s: Record<string, React.CSSProperties> = {
         borderRadius: radius.md, padding: '12px 16px', fontSize: 13, color: '#fca5a5',
     },
     emptyState: { textAlign: 'center', padding: '48px 24px' },
-    emptyIcon: { fontSize: 40, marginBottom: 12 },
+    emptyIcon: { display: 'flex', justifyContent: 'center', marginBottom: 12 },
     emptyTitle: { fontSize: 16, fontWeight: 600, color: colors.text.primary, marginBottom: 6 },
     emptyDesc: { fontSize: 13, color: colors.text.muted, maxWidth: 360, margin: '0 auto' },
     loadingState: { display: 'flex', flexDirection: 'column', gap: 12 },

@@ -5,10 +5,22 @@ import { colors, radius } from '../styles/tokens';
 interface Props { summary: Summary; }
 
 const fields = [
-    { key: 'title' as const, label: 'Title', icon: '📌', color: colors.brand.primary },
-    { key: 'main_contributions' as const, label: 'Main Contributions', icon: '💡', color: '#a78bfa' },
-    { key: 'methodology' as const, label: 'Methodology', icon: '🔬', color: colors.status.info },
-    { key: 'conclusions' as const, label: 'Conclusions', icon: '✅', color: colors.status.low },
+    {
+        key: 'title' as const, label: 'Title', color: colors.brand.primary,
+        icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><line x1="4" y1="6" x2="20" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><line x1="4" y1="12" x2="14" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+    },
+    {
+        key: 'main_contributions' as const, label: 'Main Contributions', color: '#a78bfa',
+        icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" /><line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+    },
+    {
+        key: 'methodology' as const, label: 'Methodology', color: colors.status.info,
+        icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+    },
+    {
+        key: 'conclusions' as const, label: 'Conclusions', color: colors.status.low,
+        icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+    },
 ];
 
 export default function SummaryPanel({ summary }: Props) {

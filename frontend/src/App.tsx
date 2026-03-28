@@ -6,7 +6,8 @@ import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardHome from './pages/DashboardHome';
 import UploadPage from './pages/UploadPage';
-import Dashboard from './pages/Dashboard';
+import Dashboard from './pages/ReportPage';
+import PapersPage from './pages/PapersPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
@@ -49,7 +50,7 @@ export default function App() {
                     <Route path="/dashboard" element={<PrivateRoute><DashboardHome /></PrivateRoute>} />
                     <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
                     <Route path="/report/:uuid" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-                    <Route path="/papers" element={<PrivateRoute><DashboardHome /></PrivateRoute>} />
+                    <Route path="/papers" element={<PrivateRoute><PapersPage /></PrivateRoute>} />
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
             </BrowserRouter>

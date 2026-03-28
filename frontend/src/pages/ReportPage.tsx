@@ -79,10 +79,30 @@ export default function Dashboard() {
         }
     }
 
-    const tabs: { id: Tab; label: string; icon: string }[] = [
-        { id: 'report', label: 'Fraud Report', icon: '📊' },
-        { id: 'chat', label: 'AI Assistant', icon: '💬' },
-        { id: 'recommendations', label: 'Related Papers', icon: '📚' },
+    const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
+        {
+            id: 'report', label: 'Fraud Report', icon: (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.8" />
+                    <path d="M8 17v-4M12 17v-7M16 17v-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+            )
+        },
+        {
+            id: 'chat', label: 'AI Assistant', icon: (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+            )
+        },
+        {
+            id: 'recommendations', label: 'Related Papers', icon: (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+            )
+        },
     ];
 
     const riskColor = paper?.fraud_report?.risk_level
@@ -140,7 +160,13 @@ export default function Dashboard() {
             {/* Error */}
             {!loading && error && (
                 <div style={s.errorState}>
-                    <div style={s.errorIcon}>⚠️</div>
+                    <div style={s.errorIcon}>
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke={colors.status.high} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                            <line x1="12" y1="9" x2="12" y2="13" stroke={colors.status.high} strokeWidth="1.8" strokeLinecap="round" />
+                            <circle cx="12" cy="17" r="1" fill={colors.status.high} />
+                        </svg>
+                    </div>
                     <div style={s.errorText}>{error}</div>
                     <button style={s.actionBtn} onClick={() => uuid && loadPaper(uuid)}>Retry</button>
                 </div>
@@ -162,7 +188,13 @@ export default function Dashboard() {
                     {/* Failed / incomplete banner */}
                     {needsRetry && (
                         <div style={s.failedBanner}>
-                            <div style={{ fontSize: 20 }}>⚠️</div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, flexShrink: 0 }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke={colors.status.high} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                    <line x1="12" y1="9" x2="12" y2="13" stroke={colors.status.high} strokeWidth="1.8" strokeLinecap="round" />
+                                    <circle cx="12" cy="17" r="1" fill={colors.status.high} />
+                                </svg>
+                            </div>
                             <div style={{ flex: 1 }}>
                                 <div style={s.failedTitle}>
                                     {paper.status === 'failed' ? 'Analysis failed' : 'Analysis data incomplete'}
@@ -187,7 +219,7 @@ export default function Dashboard() {
                                 style={{ ...s.tabBtn, ...(tab === t.id ? s.tabBtnActive : {}) }}
                                 onClick={() => setTab(t.id)}
                             >
-                                <span>{t.icon}</span>
+                                {t.icon}
                                 <span>{t.label}</span>
                                 {tab === t.id && <div style={s.tabIndicator} />}
                             </button>
@@ -202,7 +234,7 @@ export default function Dashboard() {
                                     {paper.fraud_report
                                         ? <FraudReportPanel report={paper.fraud_report} />
                                         : <EmptyState
-                                            icon="📊"
+                                            icon={<svg width="36" height="36" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke={colors.text.muted} strokeWidth="1.5" /><path d="M8 17v-4M12 17v-7M16 17v-2" stroke={colors.text.muted} strokeWidth="1.5" strokeLinecap="round" /></svg>}
                                             title={paper.status === 'completed' ? 'Report data missing' : 'Report not ready'}
                                             desc={paper.status === 'completed' ? 'Click Retry Analysis above to regenerate.' : 'The fraud analysis is still processing. Please wait.'}
                                         />
@@ -212,7 +244,7 @@ export default function Dashboard() {
                                     {paper.summary
                                         ? <SummaryPanel summary={paper.summary} />
                                         : <EmptyState
-                                            icon="📝"
+                                            icon={<svg width="36" height="36" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke={colors.text.muted} strokeWidth="1.5" /><polyline points="14 2 14 8 20 8" stroke={colors.text.muted} strokeWidth="1.5" /><line x1="16" y1="13" x2="8" y2="13" stroke={colors.text.muted} strokeWidth="1.5" strokeLinecap="round" /><line x1="16" y1="17" x2="8" y2="17" stroke={colors.text.muted} strokeWidth="1.5" strokeLinecap="round" /></svg>}
                                             title={paper.status === 'completed' ? 'Summary data missing' : 'Summary pending'}
                                             desc={paper.status === 'completed' ? 'Click Retry Analysis to regenerate.' : 'Summary will appear once analysis completes.'}
                                         />
@@ -237,10 +269,10 @@ export default function Dashboard() {
     );
 }
 
-function EmptyState({ icon, title, desc }: { icon: string; title: string; desc: string }) {
+function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
     return (
         <div style={{ textAlign: 'center', padding: '48px 24px', color: colors.text.muted }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>{icon}</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>{icon}</div>
             <div style={{ fontSize: 15, fontWeight: 600, color: colors.text.secondary, marginBottom: 6 }}>{title}</div>
             <div style={{ fontSize: 13 }}>{desc}</div>
         </div>
@@ -277,7 +309,7 @@ const s: Record<string, React.CSSProperties> = {
     },
     loadingText: { fontSize: 14, color: colors.text.muted },
     errorState: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 },
-    errorIcon: { fontSize: 40 },
+    errorIcon: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
     errorText: { fontSize: 15, color: colors.text.secondary },
     actionBtn: {
         background: colors.brand.gradient, border: 'none', borderRadius: radius.md,

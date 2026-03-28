@@ -167,12 +167,12 @@ export default function UploadPage() {
                     <div style={s.infoCard}>
                         <div style={s.infoTitle}>What we analyze</div>
                         {[
-                            { icon: '🔍', title: 'Plagiarism Detection', desc: 'TF-IDF cosine similarity against reference corpus' },
-                            { icon: '🔄', title: 'Pattern Analysis', desc: 'Repeated sentences, overused keywords, structural anomalies' },
-                            { icon: '📎', title: 'Citation Checking', desc: 'Mixed citation styles and format inconsistencies' },
-                            { icon: '🤖', title: 'AI Summary', desc: 'Structured summary with contributions & methodology' },
-                            { icon: '💬', title: 'Interactive Q&A', desc: 'RAG-based chatbot for paper-specific questions' },
-                            { icon: '📚', title: 'Related Papers', desc: 'Semantic similarity recommendations' },
+                            { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke={colors.text.secondary} strokeWidth="1.8" /><path d="M21 21l-4.35-4.35" stroke={colors.text.secondary} strokeWidth="1.8" strokeLinecap="round" /></svg>, title: 'Plagiarism Detection', desc: 'TF-IDF cosine similarity against reference corpus' },
+                            { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><polyline points="23 4 23 10 17 10" stroke={colors.text.secondary} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" stroke={colors.text.secondary} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>, title: 'Pattern Analysis', desc: 'Repeated sentences, overused keywords, structural anomalies' },
+                            { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke={colors.text.secondary} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke={colors.text.secondary} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>, title: 'Citation Checking', desc: 'Mixed citation styles and format inconsistencies' },
+                            { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke={colors.text.secondary} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>, title: 'AI Summary', desc: 'Structured summary with contributions & methodology' },
+                            { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke={colors.text.secondary} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><line x1="9" y1="10" x2="15" y2="10" stroke={colors.text.secondary} strokeWidth="1.8" strokeLinecap="round" /></svg>, title: 'Interactive Q&A', desc: 'RAG-based chatbot for paper-specific questions' },
+                            { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={colors.text.secondary} strokeWidth="1.8" strokeLinecap="round" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={colors.text.secondary} strokeWidth="1.8" strokeLinecap="round" /></svg>, title: 'Related Papers', desc: 'Semantic similarity recommendations' },
                         ].map(item => (
                             <div key={item.title} style={s.infoItem}>
                                 <span style={s.infoItemIcon}>{item.icon}</span>
@@ -269,7 +269,7 @@ const s: Record<string, React.CSSProperties> = {
     },
     infoTitle: { fontSize: 13, fontWeight: 700, color: colors.text.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 20 },
     infoItem: { display: 'flex', gap: 12, marginBottom: 18 },
-    infoItemIcon: { fontSize: 18, flexShrink: 0, marginTop: 1 },
+    infoItemIcon: { flexShrink: 0, marginTop: 1, display: 'flex', alignItems: 'center' },
     infoItemTitle: { fontSize: 13, fontWeight: 600, color: colors.text.primary, marginBottom: 2 },
     infoItemDesc: { fontSize: 12, color: colors.text.muted, lineHeight: 1.5 },
     timeCard: {

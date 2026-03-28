@@ -33,7 +33,7 @@ export async function getRecentPapers(): Promise<{ papers: PaperMeta[] }> {
     return res.data;
 }
 
-export async function getAllPapers(page = 1, limit = 20): Promise<{ papers: PaperMeta[]; total: number; page: number }> {
+export async function getAllPapers(page = 1, limit = 10): Promise<{ papers: PaperMeta[]; total: number; page: number }> {
     const res = await api.get(`/dashboard/papers?page=${page}&limit=${limit}`);
     return res.data;
 }

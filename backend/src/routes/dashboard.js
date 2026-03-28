@@ -30,7 +30,7 @@ router.get('/stats', requireAuth, async (req, res) => {
   }
 });
 
-// GET /dashboard/recent — last 10 papers for this user
+// GET /dashboard/recent — last 5 papers for this user
 router.get('/recent', requireAuth, async (req, res) => {
   const userId = req.user.id;
   try {
@@ -39,7 +39,7 @@ router.get('/recent', requireAuth, async (req, res) => {
       FROM papers
       WHERE user_id = ?
       ORDER BY uploaded_at DESC
-      LIMIT 10
+      LIMIT 5
     `, [userId]);
 
     return res.json({ papers: rows });

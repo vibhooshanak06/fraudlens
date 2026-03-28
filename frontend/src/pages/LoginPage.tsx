@@ -42,10 +42,10 @@ export default function LoginPage() {
                     <p style={s.leftSub}>Detect plagiarism, analyze citations, and verify research authenticity with state-of-the-art AI.</p>
                     <div style={s.features}>
                         {[
-                            { icon: '🔍', text: 'Deep plagiarism detection with TF-IDF analysis' },
-                            { icon: '🤖', text: 'RAG-based chatbot for paper Q&A' },
-                            { icon: '📊', text: 'Visual fraud risk scoring & reporting' },
-                            { icon: '📚', text: 'Smart paper recommendations' },
+                            { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke={colors.brand.primary} strokeWidth="1.8" /><path d="M21 21l-4.35-4.35" stroke={colors.brand.primary} strokeWidth="1.8" strokeLinecap="round" /></svg>, text: 'Deep plagiarism detection with TF-IDF analysis' },
+                            { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke={colors.brand.primary} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>, text: 'RAG-based chatbot for paper Q&A' },
+                            { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke={colors.brand.primary} strokeWidth="1.8" /><path d="M8 17v-4M12 17v-7M16 17v-2" stroke={colors.brand.primary} strokeWidth="1.8" strokeLinecap="round" /></svg>, text: 'Visual fraud risk scoring & reporting' },
+                            { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={colors.brand.primary} strokeWidth="1.8" strokeLinecap="round" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={colors.brand.primary} strokeWidth="1.8" strokeLinecap="round" /></svg>, text: 'Smart paper recommendations' },
                         ].map(f => (
                             <div key={f.text} style={s.featureItem}>
                                 <span style={s.featureIcon}>{f.icon}</span>
@@ -158,7 +158,7 @@ const s: Record<string, React.CSSProperties> = {
     leftSub: { fontSize: 15, color: colors.text.secondary, lineHeight: 1.7, marginBottom: 40 },
     features: { display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 48 },
     featureItem: { display: 'flex', alignItems: 'center', gap: 14 },
-    featureIcon: { fontSize: 18, width: 36, height: 36, background: colors.bg.elevated, borderRadius: radius.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } as any,
+    featureIcon: { width: 36, height: 36, background: colors.bg.elevated, borderRadius: radius.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } as any,
     featureText: { fontSize: 14, color: colors.text.secondary },
     stats: { display: 'flex', gap: 32 },
     stat: { textAlign: 'center' as const },
