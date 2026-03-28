@@ -2,7 +2,7 @@ import React from 'react';
 import { Summary } from '../api';
 import { colors, radius } from '../styles/tokens';
 
-interface Props { summary: Summary; }
+interface Props { summary: Summary; keywords?: string[]; }
 
 const fields = [
     {
@@ -23,7 +23,7 @@ const fields = [
     },
 ];
 
-export default function SummaryPanel({ summary }: Props) {
+export default function SummaryPanel({ summary, keywords }: Props) {
     return (
         <div style={s.container}>
             <div style={s.header}>
@@ -49,33 +49,39 @@ export default function SummaryPanel({ summary }: Props) {
                         <div style={s.fieldValue}>{summary[f.key] || 'Not available'}</div>
                     </div>
                 ))}
+
+                {/* Keywords */}
+                {keywords && keywords.length > 0 && (
+                    <div style={s.field}>
+                        <div style={{ ...s.fieldLabel, color: colors.status.medium }}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                <line x1="7" y1="7" x2="7.01" y2="7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
+                            <span>Keywords</span>
+                        </div>
+                        <div style={s.keywordWrap}>
+                            {keywords.map(k => (
+                                <span key={k} style={s.keyword}>{k}</span>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
 }
 
 const s: Record<string, React.CSSProperties> = {
-    container: {
-        background: colors.bg.surface, border: `1px solid ${colors.bg.border}`,
-        borderRadius: radius.xl, overflow: 'hidden',
-    },
-    header: {
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '16px 20px', borderBottom: `1px solid ${colors.bg.border}`,
-        background: colors.bg.elevated,
-    },
-    headerIcon: {
-        width: 30, height: 30, background: colors.brand.primaryGlow, borderRadius: radius.sm,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-    },
+    container: { background: colors.bg.surface, border: `1px solid ${colors.bg.border}`, borderRadius: radius.xl, overflow: 'hidden' },
+    header: { display: 'flex', alignItems: 'center', gap: 10, padding: '16px 20px', borderBottom: `1px solid ${colors.bg.border}`, background: colors.bg.elevated },
+    headerIcon: { width: 30, height: 30, background: colors.brand.primaryGlow, borderRadius: radius.sm, display: 'flex', alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 14, fontWeight: 700, color: colors.text.primary, flex: 1 },
-    aiBadge: {
-        fontSize: 10, fontWeight: 700, color: '#a78bfa', background: 'rgba(167,139,250,0.1)',
-        border: '1px solid rgba(167,139,250,0.2)', borderRadius: radius.full,
-        padding: '3px 8px', letterSpacing: 0.5,
-    },
+    aiBadge: { fontSize: 10, fontWeight: 700, color: '#a78bfa', background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: radius.full, padding: '3px 8px', letterSpacing: 0.5 },
     fields: { padding: '4px 0' },
     field: { padding: '14px 20px', borderBottom: `1px solid ${colors.bg.border}` },
     fieldLabel: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 },
     fieldValue: { fontSize: 13, color: colors.text.secondary, lineHeight: 1.7 },
+    keywordWrap: { display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 },
+    keyword: { fontSize: 11, fontWeight: 600, color: colors.status.medium, background: colors.status.mediumBg, border: `1px solid ${colors.status.medium}30`, borderRadius: radius.full, padding: '3px 10px' },
 };

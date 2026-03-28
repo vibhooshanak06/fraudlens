@@ -277,7 +277,7 @@ export default function Dashboard() {
                                 </div>
                                 <div style={s.reportSide}>
                                     {paper.summary
-                                        ? <SummaryPanel summary={paper.summary} />
+                                        ? <SummaryPanel summary={paper.summary} keywords={paper.keywords} />
                                         : <EmptyState
                                             icon={<svg width="36" height="36" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke={colors.text.muted} strokeWidth="1.5" /><polyline points="14 2 14 8 20 8" stroke={colors.text.muted} strokeWidth="1.5" /><line x1="16" y1="13" x2="8" y2="13" stroke={colors.text.muted} strokeWidth="1.5" strokeLinecap="round" /><line x1="16" y1="17" x2="8" y2="17" stroke={colors.text.muted} strokeWidth="1.5" strokeLinecap="round" /></svg>}
                                             title={paper.status === 'completed' ? 'Summary data missing' : 'Summary pending'}
