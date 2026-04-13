@@ -5,6 +5,56 @@ const pool = require('../mysql');
 const Paper = require('../models/Paper');
 const { requireAuth } = require('../middleware/auth');
 
+const MARGIN = 45;
+const PAGE_W = 595.28; // A4
+const CONTENT_W = PAGE_W - MARGIN * 2;
+
+// Colour palette
+const C = {
+  bg:        '#060b18',
+  surface:   '#0d1526',
+  border:    '#1e2d4a',
+  accent:    '#4f8ef7',
+  muted:     '#8fa3c8',
+  text:      '#dce8ff',
+  low:       '#10b981',
+  medium:    '#f59e0b',
+  high:      '#ef4444',
+  white:     '#ffffff',
+};
+
+function riskColor(level) {
+  return C[level] || C.muted;
+}
+
+// Draw a filled rounded rect (pdfkit doesn't have roundedRect natively in all versions)
+function filledRect(doc, x, y, w, h, color, strokeColor) {
+  doc.save().rect(x, y, w, h).fillAndStroke(color, strokeColor || color).restore();
+}
+
+// Section heading
+function sectionHeading(doc, title) {
+  doc.moveDown(0.6);
+  const y = doc.y;
+  doc.save()
+    .rect(MARGIN, y, 3, 13)
+    .fill(C.accent)
+    .restore();
+  doc.fontSize(11).font('Helvetica-Bold').fillColor(C.text)
+    .text(title, MARGIN + 10, y, { width: CONTENT_W - 10 });
+  doc.moveDown(0.5);
+}
+
+// Labelled row: "Label   Value"
+function labelValue(doc, label, value) {
+  const y = doc.y;
+  doc.fontSize(9).font('Helvetica-Bold').fillColor(C.muted)
+    .text(label.toUpperCase(), MARGIN, y, { width: 120, continued: false });
+  doc.fontSize(9).font('Helvetica').fillColor(C.text)
+    .text(value || '—', MARGIN + 125, y, { width: CONTENT_W - 125 });
+  doc.moveDown(0.35);
+}
+
 // GET /export/:uuid/pdf
 router.get('/:uuid/pdf', requireAuth, async (req, res) => {
   const { uuid } = req.params;
@@ -28,90 +78,127 @@ router.get('/:uuid/pdf', requireAuth, async (req, res) => {
       }
     } catch (_) {}
 
-    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    const doc = new PDFDocument({ margin: MARGIN, size: 'A4', autoFirstPage: true });
     const filename = meta.filename.replace(/[^a-z0-9_\-\.]/gi, '_');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="fraudlens-report-${filename}.pdf"`);
     doc.pipe(res);
 
-    // ── Header ──────────────────────────────────────────────────────────────
-    doc.rect(0, 0, doc.page.width, 80).fill('#060b18');
-    doc.fontSize(22).fillColor('#4f8ef7').font('Helvetica-Bold').text('FraudLens', 50, 24);
-    doc.fontSize(10).fillColor('#8fa3c8').font('Helvetica').text('Research Integrity Analysis Report', 50, 50);
-    doc.moveDown(3);
+    // ── PAGE 1 ───────────────────────────────────────────────────────────────
 
-    // ── Paper info ───────────────────────────────────────────────────────────
-    doc.fillColor('#f0f4ff').fontSize(14).font('Helvetica-Bold').text('Paper', { underline: false });
-    doc.moveDown(0.3);
-    doc.fontSize(11).font('Helvetica').fillColor('#8fa3c8')
-      .text(`Filename: `, { continued: true }).fillColor('#f0f4ff').text(meta.filename);
-    doc.fillColor('#8fa3c8').text(`Analyzed: `, { continued: true })
-      .fillColor('#f0f4ff').text(new Date(meta.uploaded_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }));
-    doc.moveDown(1.5);
+    // Header banner
+    filledRect(doc, 0, 0, PAGE_W, 64, C.bg);
+    doc.fontSize(18).font('Helvetica-Bold').fillColor(C.accent)
+      .text('FraudLens', MARGIN, 18, { continued: true });
+    doc.fontSize(9).font('Helvetica').fillColor(C.muted)
+      .text('  ·  Research Integrity Analysis Report', { continued: false });
+    doc.fontSize(8).fillColor(C.muted)
+      .text(`Generated ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, MARGIN, 40);
 
-    // ── Risk summary ─────────────────────────────────────────────────────────
+    doc.y = 80;
+
+    // ── Paper info block ─────────────────────────────────────────────────────
+    sectionHeading(doc, 'Paper Information');
+    labelValue(doc, 'Filename', meta.filename);
+    labelValue(doc, 'Analyzed', new Date(meta.uploaded_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }));
+    labelValue(doc, 'Status', (meta.status || '').toUpperCase());
+
+    // ── Risk summary box ─────────────────────────────────────────────────────
     if (fraud_report) {
       const pct = Math.round((fraud_report.plagiarism_score || 0) * 100);
-      const riskColors = { low: '#10b981', medium: '#f59e0b', high: '#ef4444' };
-      const riskColor = riskColors[fraud_report.risk_level] || '#8fa3c8';
+      const rc = riskColor(fraud_report.risk_level);
+      const issueCount = (fraud_report.issues || []).length;
 
-      doc.fontSize(14).font('Helvetica-Bold').fillColor('#f0f4ff').text('Fraud Analysis');
-      doc.moveDown(0.3);
-      doc.rect(50, doc.y, doc.page.width - 100, 60).fill('#0d1526').stroke('#1e2d4a');
-      const boxY = doc.y - 60;
-      doc.fontSize(11).font('Helvetica').fillColor('#8fa3c8').text('Plagiarism Score', 66, boxY + 10);
-      doc.fontSize(24).font('Helvetica-Bold').fillColor(riskColor).text(`${pct}%`, 66, boxY + 24);
-      doc.fontSize(11).font('Helvetica-Bold').fillColor(riskColor)
-        .text(`${(fraud_report.risk_level || '').toUpperCase()} RISK`, 200, boxY + 28);
-      doc.fontSize(10).font('Helvetica').fillColor('#8fa3c8')
-        .text(`${(fraud_report.issues || []).length} issue(s) detected`, 200, boxY + 44);
-      doc.moveDown(1.5);
+      sectionHeading(doc, 'Fraud Analysis');
 
-      // Issues
-      if (fraud_report.issues && fraud_report.issues.length > 0) {
-        doc.fontSize(13).font('Helvetica-Bold').fillColor('#f0f4ff').text('Detected Issues');
-        doc.moveDown(0.5);
-        fraud_report.issues.forEach((issue, i) => {
-          doc.fontSize(11).font('Helvetica-Bold').fillColor('#4f8ef7').text(`${i + 1}. ${issue.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`);
-          doc.fontSize(10).font('Helvetica').fillColor('#8fa3c8').text(issue.description, { width: doc.page.width - 100 });
-          if (issue.excerpt) {
-            doc.moveDown(0.2);
-            doc.fontSize(9).fillColor('#4a6080').font('Helvetica-Oblique')
-              .text(`"${issue.excerpt.slice(0, 200)}"`, { width: doc.page.width - 120, indent: 20 });
-          }
-          doc.moveDown(0.6);
+      const boxY = doc.y;
+      const boxH = 52;
+      filledRect(doc, MARGIN, boxY, CONTENT_W, boxH, C.surface, C.border);
+
+      // Plagiarism score
+      doc.fontSize(22).font('Helvetica-Bold').fillColor(rc)
+        .text(`${pct}%`, MARGIN + 14, boxY + 8, { width: 70 });
+      doc.fontSize(8).font('Helvetica').fillColor(C.muted)
+        .text('Plagiarism Score', MARGIN + 14, boxY + 34);
+
+      // Divider
+      doc.save().moveTo(MARGIN + 90, boxY + 10).lineTo(MARGIN + 90, boxY + boxH - 10)
+        .strokeColor(C.border).lineWidth(1).stroke().restore();
+
+      // Risk level
+      doc.fontSize(13).font('Helvetica-Bold').fillColor(rc)
+        .text(`${(fraud_report.risk_level || '').toUpperCase()} RISK`, MARGIN + 104, boxY + 10, { width: 140 });
+      doc.fontSize(8).font('Helvetica').fillColor(C.muted)
+        .text(`${issueCount} issue${issueCount !== 1 ? 's' : ''} detected`, MARGIN + 104, boxY + 30);
+
+      doc.y = boxY + boxH + 12;
+
+      // ── Issues ───────────────────────────────────────────────────────────
+      if (issueCount > 0) {
+        sectionHeading(doc, 'Detected Issues');
+        (fraud_report.issues || []).forEach((issue, i) => {
+          const label = issue.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          doc.fontSize(9).font('Helvetica-Bold').fillColor(C.accent)
+            .text(`${i + 1}.  ${label}`, MARGIN, doc.y, { width: CONTENT_W });
+          doc.fontSize(8.5).font('Helvetica').fillColor(C.muted)
+            .text(issue.description, MARGIN + 14, doc.y, { width: CONTENT_W - 14 });
+          doc.moveDown(0.5);
         });
       } else {
-        doc.fontSize(11).font('Helvetica').fillColor('#10b981').text('No issues detected — paper passed all fraud detection checks.');
-        doc.moveDown(1);
+        doc.fontSize(9).font('Helvetica').fillColor(C.low)
+          .text('✓  No issues detected — paper passed all fraud detection checks.', MARGIN, doc.y);
+        doc.moveDown(0.5);
       }
     }
 
-    // ── Summary ──────────────────────────────────────────────────────────────
+    // ── Summary (same page if space, else page 2) ────────────────────────────
     if (summary) {
-      doc.addPage();
-      doc.fontSize(14).font('Helvetica-Bold').fillColor('#f0f4ff').text('AI-Generated Summary');
-      doc.moveDown(0.5);
+      // If less than 200pt remaining, add a new page
+      if (doc.y > doc.page.height - 220) {
+        doc.addPage();
+        doc.y = MARGIN;
+      }
 
-      const fields = [
-        { key: 'title', label: 'Title' },
+      sectionHeading(doc, 'AI-Generated Summary');
+
+      const summaryFields = [
+        { key: 'title',              label: 'Title' },
         { key: 'main_contributions', label: 'Main Contributions' },
-        { key: 'methodology', label: 'Methodology' },
-        { key: 'conclusions', label: 'Conclusions' },
+        { key: 'methodology',        label: 'Methodology' },
+        { key: 'conclusions',        label: 'Conclusions' },
       ];
-      fields.forEach(f => {
-        if (summary[f.key]) {
-          doc.fontSize(11).font('Helvetica-Bold').fillColor('#4f8ef7').text(f.label);
-          doc.fontSize(10).font('Helvetica').fillColor('#8fa3c8')
-            .text(summary[f.key], { width: doc.page.width - 100 });
-          doc.moveDown(0.8);
-        }
+
+      summaryFields.forEach(f => {
+        if (!summary[f.key]) return;
+        // Truncate long values to keep within 2 pages (~400 chars each)
+        const val = summary[f.key].length > 420
+          ? summary[f.key].slice(0, 420).trimEnd() + '…'
+          : summary[f.key];
+
+        doc.fontSize(9).font('Helvetica-Bold').fillColor(C.accent)
+          .text(f.label, MARGIN, doc.y, { width: CONTENT_W });
+        doc.fontSize(8.5).font('Helvetica').fillColor(C.muted)
+          .text(val, MARGIN + 10, doc.y, { width: CONTENT_W - 10 });
+        doc.moveDown(0.55);
       });
     }
 
-    // ── Footer ───────────────────────────────────────────────────────────────
-    doc.fontSize(8).fillColor('#4a6080').font('Helvetica')
-      .text(`Generated by FraudLens · ${new Date().toISOString()}`, 50, doc.page.height - 40, { align: 'center' });
+    // ── Footer on every page ─────────────────────────────────────────────────
+    const range = doc.bufferedPageRange();
+    for (let i = 0; i < range.count; i++) {
+      doc.switchToPage(range.start + i);
+      doc.save()
+        .moveTo(MARGIN, doc.page.height - 28)
+        .lineTo(PAGE_W - MARGIN, doc.page.height - 28)
+        .strokeColor(C.border).lineWidth(0.5).stroke()
+        .restore();
+      doc.fontSize(7).font('Helvetica').fillColor(C.muted)
+        .text(
+          `FraudLens · Confidential · Page ${i + 1} of ${range.count}`,
+          MARGIN, doc.page.height - 20,
+          { width: CONTENT_W, align: 'center' }
+        );
+    }
 
     doc.end();
   } catch (err) {

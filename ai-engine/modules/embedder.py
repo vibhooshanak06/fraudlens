@@ -10,7 +10,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from modules.llm import embed_texts
 
 FAISS_STORE_PATH = os.getenv("FAISS_STORE_PATH", "./faiss_indexes")
-EMBED_DIM = 512  # TF-IDF fallback dim; OpenAI text-embedding-3-small = 1536
+EMBED_DIM = 384  # sentence-transformers all-MiniLM-L6-v2
 
 
 def chunk_text(text: str) -> list[str]:
@@ -56,8 +56,24 @@ def search(uuid: str, query: str, top_k: int = 5) -> list[dict]:
     index, chunks = load_index(uuid)
     if index is None:
         return []
-    embeddings_list = embed_texts([query])
-    query_embedding = np.array(embeddings_list, dtype="float32")
+
+    query_emb = embed_texts([query])
+    query_embedding = np.array(query_emb, dtype="float32")
+
+    # Rebuild index if dimension changed (e.g. switched embedding model)
+    if query_embedding.shape[1] != index.d:
+        print(f"[Embedder] Rebuilding index for {uuid} ({index.d}d -> {query_embedding.shape[1]}d)")
+        chunk_embs = embed_texts(chunks)
+        chunk_embeddings = np.array(chunk_embs, dtype="float32")
+        dim = chunk_embeddings.shape[1]
+        index = faiss.IndexFlatL2(dim)
+        index.add(chunk_embeddings)
+        faiss.write_index(index, os.path.join(FAISS_STORE_PATH, f"{uuid}.index"))
+        with open(os.path.join(FAISS_STORE_PATH, f"{uuid}.dim"), "w") as f:
+            f.write(str(dim))
+        query_emb = embed_texts([query])
+        query_embedding = np.array(query_emb, dtype="float32")
+
     k = min(top_k, index.ntotal)
     if k == 0:
         return []

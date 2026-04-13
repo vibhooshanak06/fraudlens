@@ -74,6 +74,13 @@ def detect_patterns(text: str) -> list:
     sentences = _split_sentences(text)
     sentence_counts = Counter(sentences)
     for sentence, count in sentence_counts.items():
+        # Skip trivially short fragments (bullets, year fragments, partial citations)
+        stripped = sentence.strip()
+        if len(stripped) < 15:
+            continue
+        # Skip fragments that look like reference list noise (e.g. "2021.", "3, pp.")
+        if re.match(r'^[\d\s,\.pp\-]+$', stripped, re.IGNORECASE):
+            continue
         if count >= 3:
             issues.append({
                 "type": "repeated_sentence",

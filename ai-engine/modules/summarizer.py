@@ -4,7 +4,7 @@ from modules.llm import chat_completion
 
 
 def generate_summary(text: str) -> dict:
-    truncated = text[:6000] if len(text) > 6000 else text
+    truncated = text[:12000] if len(text) > 12000 else text
 
     result = {
         "title": "Unknown",
@@ -18,21 +18,21 @@ def generate_summary(text: str) -> dict:
             "role": "system",
             "content": (
                 "You are an expert academic paper analyst. "
-                "Respond ONLY with exactly these four labeled lines, no extra text:\n"
-                "Title: <paper title>\n"
-                "Main Contributions: <1-2 sentences>\n"
-                "Methodology: <1-2 sentences>\n"
-                "Conclusions: <1-2 sentences>"
+                "Respond ONLY with exactly these four labeled sections, no extra text:\n"
+                "Title: <full paper title>\n"
+                "Main Contributions: <3-5 sentences describing the key contributions, novelty, and significance of the work>\n"
+                "Methodology: <3-5 sentences describing the methods, datasets, algorithms, and experimental setup used>\n"
+                "Conclusions: <3-5 sentences summarizing the results, findings, limitations, and future work>"
             ),
         },
         {
             "role": "user",
-            "content": f"Analyze this research paper:\n\n{truncated}",
+            "content": f"Analyze this research paper and provide detailed, informative descriptions for each section:\n\n{truncated}",
         },
     ]
 
     try:
-        raw = chat_completion(messages, max_tokens=600, temperature=0.1)
+        raw = chat_completion(messages, max_tokens=1200, temperature=0.2)
         current_key = None
         buffer = []
 
@@ -174,7 +174,7 @@ def _text_fallback(text: str, base: dict) -> dict:
 
     # ── Main contributions (from abstract) ────────────────────────────────
     if abstract_idx != -1:
-        s = _section_text(lines, abstract_idx, 600)
+        s = _section_text(lines, abstract_idx, 1200)
         if len(s) > 50:
             result["main_contributions"] = s
 
@@ -182,18 +182,18 @@ def _text_fallback(text: str, base: dict) -> dict:
         # Grab first paragraph longer than 150 chars
         for line in lines[:80]:
             if len(line) > 150:
-                result["main_contributions"] = line[:600]
+                result["main_contributions"] = line[:1200]
                 break
 
     # ── Methodology ───────────────────────────────────────────────────────
     if method_idx != -1:
-        s = _section_text(lines, method_idx, 600)
+        s = _section_text(lines, method_idx, 1200)
         if len(s) > 50:
             result["methodology"] = s
 
     # ── Conclusions ───────────────────────────────────────────────────────
     if conclusion_idx != -1:
-        s = _section_text(lines, conclusion_idx, 600)
+        s = _section_text(lines, conclusion_idx, 1200)
         if len(s) > 50:
             result["conclusions"] = s
 
@@ -205,14 +205,14 @@ def _text_fallback(text: str, base: dict) -> dict:
             if len(sent) > 80 and any(kw in sent.lower() for kw in
                 ["conclude", "in summary", "this paper", "proposed system",
                  "demonstrates", "results show", "achieves", "future work"]):
-                result["conclusions"] = sent[:500]
+                result["conclusions"] = sent[:1000]
                 break
 
     # Absolute last resort: last long line
     if result["conclusions"] == "Not available":
         for line in reversed(lines):
             if len(line) > 100 and not _is_heading(line):
-                result["conclusions"] = line[:500]
+                result["conclusions"] = line[:1000]
                 break
 
     return result

@@ -10,9 +10,15 @@ import urllib.error
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 # Free models on OpenRouter — primary + fallback
-MODEL = os.getenv("OPENROUTER_MODEL", "mistralai/mistral-small-3.1-24b-instruct:free")
-FALLBACK_MODEL = "meta-llama/llama-3.2-3b-instruct:free"
-FALLBACK_MODEL_2 = "nousresearch/hermes-3-llama-3.1-405b:free"
+MODEL = os.getenv("OPENROUTER_MODEL", "liquid/lfm-2.5-1.2b-instruct:free")
+FALLBACK_MODELS = [
+    "liquid/lfm-2.5-1.2b-thinking:free",
+    "google/gemma-3-4b-it:free",
+    "meta-llama/llama-3.2-3b-instruct:free",
+    "mistralai/mistral-small-3.1-24b-instruct:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "nousresearch/hermes-3-llama-3.1-405b:free",
+]
 EMBED_MODEL = "text-embedding-3-small"  # still use OpenAI for embeddings via OpenRouter
 
 
@@ -44,9 +50,9 @@ def _call_model(model: str, messages: list[dict], max_tokens: int, temperature: 
 
 def chat_completion(messages: list[dict], max_tokens: int = 800, temperature: float = 0.2) -> str:
     """
-    Call OpenRouter chat completion. Tries models in order, skipping on 404/429.
+    Call OpenRouter chat completion. Tries models in order, skipping on 404/429/503.
     """
-    models = [MODEL, FALLBACK_MODEL, FALLBACK_MODEL_2]
+    models = [MODEL] + FALLBACK_MODELS
     last_err = None
     for model in models:
         try:
@@ -54,58 +60,34 @@ def chat_completion(messages: list[dict], max_tokens: int = 800, temperature: fl
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", errors="ignore")
             last_err = RuntimeError(f"OpenRouter HTTP {e.code} ({model}): {body[:200]}")
-            if e.code in (404, 429, 503):
-                continue  # try next model
+            if e.code in (404, 429, 503, 500):
+                print(f"[LLM] {model} unavailable ({e.code}), trying next...")
+                continue
             raise last_err
         except Exception as e:
             last_err = RuntimeError(f"OpenRouter request failed ({model}): {e}")
+            print(f"[LLM] {model} failed: {e}, trying next...")
             continue
     raise last_err or RuntimeError("All configured LLM models are unavailable")
 
 
+_st_model = None
+
+def _get_st_model():
+    global _st_model
+    if _st_model is None:
+        from sentence_transformers import SentenceTransformer
+        _st_model = SentenceTransformer('all-MiniLM-L6-v2')
+    return _st_model
+
+
 def embed_texts(texts: list[str]) -> list[list[float]]:
-    """
-    Get embeddings via OpenRouter (proxies OpenAI embeddings).
-    Falls back to TF-IDF-based pseudo-embeddings if unavailable.
-    """
-    payload = json.dumps({
-        "model": "openai/text-embedding-3-small",
-        "input": texts,
-    }).encode("utf-8")
-
-    req = urllib.request.Request(
-        f"{OPENROUTER_BASE}/embeddings",
-        data=payload,
-        headers={
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://fraudlens.ai",
-            "X-Title": "FraudLens",
-        },
-        method="POST",
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            return [item["embedding"] for item in data["data"]]
-    except Exception as e:
-        # Fallback: use sklearn TF-IDF to produce pseudo-embeddings
-        return _tfidf_embeddings(texts)
+    """Embed texts using sentence-transformers (local, no API needed)."""
+    model = _get_st_model()
+    embeddings = model.encode(texts, normalize_embeddings=True)
+    return embeddings.tolist()
 
 
 def _tfidf_embeddings(texts: list[str]) -> list[list[float]]:
-    """Fallback: TF-IDF sparse vectors padded to 512 dims."""
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    import numpy as np
-    vec = TfidfVectorizer(max_features=512)
-    try:
-        matrix = vec.fit_transform(texts).toarray().astype(float)
-        # Normalize
-        norms = np.linalg.norm(matrix, axis=1, keepdims=True)
-        norms[norms == 0] = 1
-        matrix = matrix / norms
-        return matrix.tolist()
-    except Exception:
-        dim = 512
-        return [[0.0] * dim for _ in texts]
+    """Kept for compatibility — delegates to sentence-transformers."""
+    return embed_texts(texts)

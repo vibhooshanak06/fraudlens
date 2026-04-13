@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../mysql');
+const Paper = require('../models/Paper');
 const { requireAuth } = require('../middleware/auth');
 const axios = require('axios');
 const path = require('path');
@@ -19,6 +20,29 @@ async function triggerAIEngine(uuid, pdfPath, userId) {
     await pool.query(
       `UPDATE papers SET status='completed', risk_level=?, plagiarism_score=?, issue_count=?, completed_at=NOW() WHERE uuid=?`,
       [riskLevel, plagiarismScore, issueCount, uuid]
+    );
+
+    // Save full analysis data to MongoDB (upsert in case doc doesn't exist)
+    // Only set keywords/extracted_text if AI engine returned them (non-empty).
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await Paper.findOneAndUpdate(
+      { uuid },
+      {
+        $set: {
+          fraud_report: data.fraud_report || {},
+          summary: data.summary || {},
+          ...(data.keywords && data.keywords.length > 0 && { keywords: data.keywords }),
+          ...(data.extracted_text && { extracted_text: data.extracted_text }),
+          status: 'completed',
+        },
+        $setOnInsert: {
+          uuid,
+          filename: path.basename(absolutePath),
+          file_path: absolutePath,
+          expires_at: expiresAt,
+        },
+      },
+      { upsert: true, new: true }
     );
   } catch (err) {
     console.error(`Reprocess AI engine failed for ${uuid}:`, err.message);

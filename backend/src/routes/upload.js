@@ -5,6 +5,7 @@ const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
 const pool = require('../mysql');
+const Paper = require('../models/Paper');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -41,6 +42,30 @@ async function triggerAIEngine(uuid, pdfPath, userId) {
     await pool.query(
       `UPDATE papers SET status='completed', risk_level=?, plagiarism_score=?, issue_count=?, completed_at=NOW() WHERE uuid=?`,
       [riskLevel, plagiarismScore, issueCount, uuid]
+    );
+
+    // Save full analysis data to MongoDB (upsert in case doc wasn't pre-created)
+    // Note: extracted_text and keywords are saved directly by the AI engine.
+    // We only upsert fraud_report and summary here as a safety net.
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await Paper.findOneAndUpdate(
+      { uuid },
+      {
+        $set: {
+          fraud_report: data.fraud_report || {},
+          summary: data.summary || {},
+          ...(data.keywords && data.keywords.length > 0 && { keywords: data.keywords }),
+          ...(data.extracted_text && { extracted_text: data.extracted_text }),
+          status: 'completed',
+        },
+        $setOnInsert: {
+          uuid,
+          filename: path.basename(absolutePath),
+          file_path: absolutePath,
+          expires_at: expiresAt,
+        },
+      },
+      { upsert: true, new: true }
     );
 
     // Update dashboard stats

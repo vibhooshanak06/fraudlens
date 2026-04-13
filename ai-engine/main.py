@@ -133,6 +133,8 @@ async def process(req: ProcessRequest):
         "status": "completed",
         "fraud_report": fraud_report,
         "summary": summary,
+        "keywords": keywords,
+        "extracted_text": text[:50000],
     }
 
 
@@ -189,9 +191,15 @@ async def chat(req: ChatRequest):
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e))
+        msg = str(e) or repr(e) or "LLM unavailable — all models rate-limited"
+        print(f"[Chat] RuntimeError: {msg}")
+        raise HTTPException(status_code=503, detail=msg)
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Chatbot unavailable: {e}")
+        import traceback
+        tb = traceback.format_exc()
+        msg = str(e) or repr(e) or "Unknown chatbot error"
+        print(f"[Chat] Unexpected error: {tb}")
+        raise HTTPException(status_code=503, detail=f"Chatbot error: {msg}")
 
 
 @app.post("/recommend")

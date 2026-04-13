@@ -1,23 +1,36 @@
 import React, { useEffect, useState } from 'react';
-import { getRecommendations, Recommendation } from '../api';
+import { getRecommendations, getPaper, Recommendation } from '../api';
 import { colors, radius } from '../styles/tokens';
 
-interface Props { keywords?: string[]; }
+interface Props { keywords?: string[]; uuid?: string; }
 
-export default function RecommendPanel({ keywords }: Props) {
+export default function RecommendPanel({ keywords, uuid }: Props) {
     const [results, setResults] = useState<Recommendation[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [query, setQuery] = useState('');
     const [searched, setSearched] = useState(false);
+    const [resolvedKeywords, setResolvedKeywords] = useState<string[]>(keywords || []);
 
     useEffect(() => {
-        if (keywords && keywords.length > 0) {
-            const q = keywords.slice(0, 5).join(' ');
-            setQuery(q);
-            fetchRecs(q);
+        async function init() {
+            let kws = keywords && keywords.length > 0 ? keywords : [];
+            // If no keywords passed but we have a uuid, try fetching from paper
+            if (kws.length === 0 && uuid) {
+                try {
+                    const paper = await getPaper(uuid);
+                    kws = paper.keywords || [];
+                } catch (_) { }
+            }
+            if (kws.length > 0) {
+                setResolvedKeywords(kws);
+                const q = kws.slice(0, 5).join(' ');
+                setQuery(q);
+                fetchRecs(q);
+            }
         }
-    }, [keywords?.join(',')]);
+        init();
+    }, [keywords?.join(','), uuid]);
 
     async function fetchRecs(q: string) {
         if (!q || q.trim().length < 3) return;
@@ -71,10 +84,10 @@ export default function RecommendPanel({ keywords }: Props) {
                         {loading ? 'Searching…' : 'Search'}
                     </button>
                 </form>
-                {keywords && keywords.length > 0 && (
+                {resolvedKeywords.length > 0 && (
                     <div style={s.keywordRow}>
                         <span style={s.keywordLabel}>Paper keywords:</span>
-                        {keywords.slice(0, 8).map(k => (
+                        {resolvedKeywords.slice(0, 8).map(k => (
                             <button key={k} style={s.keywordChip} onClick={() => { setQuery(k); fetchRecs(k); }}>{k}</button>
                         ))}
                     </div>

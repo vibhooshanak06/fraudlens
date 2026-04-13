@@ -29,6 +29,14 @@ def answer(uuid: str, question: str) -> dict:
     try:
         answer_text = chat_completion(messages, max_tokens=600, temperature=0.2)
     except Exception as e:
-        raise RuntimeError(f"LLM call failed: {e}")
+        err_msg = str(e) or repr(e) or "LLM unavailable"
+        # LLM unavailable — return the most relevant context chunk as the answer
+        if sources:
+            answer_text = (
+                f"The AI assistant is temporarily unavailable ({err_msg}). "
+                f"Here is the most relevant excerpt from the paper:\n\n\"{sources[0]['excerpt']}\""
+            )
+        else:
+            raise RuntimeError(f"LLM unavailable and no context found: {err_msg}")
 
     return {"answer": answer_text, "sources": sources}

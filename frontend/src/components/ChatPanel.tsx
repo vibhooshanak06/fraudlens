@@ -49,8 +49,8 @@ export default function ChatPanel({ uuid }: Props) {
                     </svg>
                 </div>
                 <div>
-                    <div style={s.headerTitle}>AI Research Assistant</div>
-                    <div style={s.headerSub}>Ask anything about this paper</div>
+                    <div style={s.headerTitle}>ASK Lensy</div>
+                    <div style={s.headerSub}>Anything about this paper</div>
                 </div>
                 <div style={s.onlineDot} />
             </div>
@@ -160,7 +160,7 @@ const s: Record<string, React.CSSProperties> = {
     container: {
         display: 'flex', flexDirection: 'column', height: '100%',
         background: colors.bg.surface, border: `1px solid ${colors.bg.border}`,
-        borderRadius: radius.xl, overflow: 'hidden',
+        borderRadius: radius.xl, overflow: 'hidden', width: '100%',
     },
     header: {
         display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px',
@@ -181,8 +181,8 @@ const s: Record<string, React.CSSProperties> = {
     suggestions: { display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
     userRow: { display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', gap: 10 },
     aiRow: { display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', gap: 10 },
-    userBubble: { background: colors.brand.gradient, borderRadius: '16px 16px 4px 16px', padding: '12px 16px', maxWidth: '75%' },
-    aiBubble: { background: colors.bg.elevated, border: `1px solid ${colors.bg.border}`, borderRadius: '16px 16px 16px 4px', padding: '12px 16px', maxWidth: '80%' },
+    userBubble: { background: colors.brand.gradient, borderRadius: '16px 16px 4px 16px', padding: '12px 16px', maxWidth: '65%' },
+    aiBubble: { background: colors.bg.elevated, border: `1px solid ${colors.bg.border}`, borderRadius: '16px 16px 16px 4px', padding: '12px 16px', maxWidth: '70%' },
     bubbleText: { fontSize: 14, color: colors.text.primary, lineHeight: 1.65, whiteSpace: 'pre-wrap' },
     userAvatar: { width: 28, height: 28, borderRadius: '50%', background: colors.brand.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', flexShrink: 0 },
     aiAvatar: { width: 28, height: 28, borderRadius: '50%', background: colors.bg.card, border: `1px solid ${colors.bg.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: colors.brand.primary, flexShrink: 0 },

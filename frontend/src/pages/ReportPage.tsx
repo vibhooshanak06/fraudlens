@@ -299,7 +299,7 @@ export default function Dashboard() {
                         )}
                         {tab === 'recommendations' && (
                             <div style={s.recsLayout}>
-                                <RecommendPanel keywords={paper.keywords} />
+                                <RecommendPanel keywords={paper.keywords} uuid={uuid!} />
                             </div>
                         )}
                     </div>
@@ -392,7 +392,7 @@ const s: Record<string, React.CSSProperties> = {
     reportLayout: { display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24, alignItems: 'start' },
     reportMain: {},
     reportSide: {},
-    chatLayout: { maxWidth: 800, height: 'calc(100vh - 220px)' },
+    chatLayout: { width: '100%', height: 'calc(100vh - 220px)' },
     citationsLayout: { width: '100%' },
     recsLayout: { maxWidth: 900 },
     exportBtn: {
