@@ -22,6 +22,12 @@ export async function signupApi(name: string, email: string, password: string) {
     return res.data as { token: string; user: User };
 }
 
+// Platform stats (public — no auth)
+export async function getPlatformStats(): Promise<PlatformStats> {
+    const res = await axios.get(`${BASE_URL}/stats/platform`);
+    return res.data;
+}
+
 // Dashboard
 export async function getDashboardStats(): Promise<DashboardStats> {
     const res = await api.get('/dashboard/stats');
@@ -118,6 +124,13 @@ export interface DashboardStats {
     high_risk_count: number;
     cleared_count: number;
     avg_plagiarism: number;
+}
+
+export interface PlatformStats {
+    total_papers: number;
+    avg_analysis_secs: number;
+    accuracy_rate: number;
+    avg_plagiarism: number | null;
 }
 
 export interface PaperMeta {

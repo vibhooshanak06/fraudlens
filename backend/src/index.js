@@ -25,6 +25,7 @@ app.use('/dashboard', require('./routes/dashboard'));
 app.use('/export', require('./routes/export'));
 app.use('/citation', require('./routes/citation'));
 app.use('/profile', require('./routes/profile'));
+app.use('/stats', require('./routes/stats'));
 
 // JSON parse error
 app.use((err, req, res, next) => {

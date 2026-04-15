@@ -19,7 +19,6 @@ FALLBACK_MODELS = [
     "meta-llama/llama-3.3-70b-instruct:free",
     "nousresearch/hermes-3-llama-3.1-405b:free",
 ]
-EMBED_MODEL = "text-embedding-3-small"  # still use OpenAI for embeddings via OpenRouter
 
 
 def _call_model(model: str, messages: list[dict], max_tokens: int, temperature: float) -> str:
@@ -86,8 +85,3 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     model = _get_st_model()
     embeddings = model.encode(texts, normalize_embeddings=True)
     return embeddings.tolist()
-
-
-def _tfidf_embeddings(texts: list[str]) -> list[list[float]]:
-    """Kept for compatibility — delegates to sentence-transformers."""
-    return embed_texts(texts)

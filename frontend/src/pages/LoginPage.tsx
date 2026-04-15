@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getPlatformStats, PlatformStats } from '../api';
 import { colors, radius } from '../styles/tokens';
 
 export default function LoginPage() {
@@ -10,6 +11,11 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [platformStats, setPlatformStats] = useState<PlatformStats | null>(null);
+
+    useEffect(() => {
+        getPlatformStats().then(setPlatformStats).catch(() => { });
+    }, []);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -38,7 +44,8 @@ export default function LoginPage() {
                         </div>
                         <span style={s.logoText}>FraudLens</span>
                     </div>
-                    <h2 style={s.leftTitle}>AI-Powered Research<br />Integrity Platform</h2>
+                    <h2 style={s.leftTitle}>An AI-powered Web application for research paper fraud detection and analysis
+                    </h2>
                     <p style={s.leftSub}>Detect plagiarism, analyze citations, and verify research authenticity with state-of-the-art AI.</p>
                     <div style={s.features}>
                         {[
@@ -54,7 +61,20 @@ export default function LoginPage() {
                         ))}
                     </div>
                     <div style={s.stats}>
-                        {[['10K+', 'Papers Analyzed'], ['99.2%', 'Accuracy Rate'], ['<60s', 'Analysis Time']].map(([val, label]) => (
+                        {(platformStats ? [
+                            [
+                                platformStats.total_papers >= 1000
+                                    ? `${(platformStats.total_papers / 1000).toFixed(1)}K+`
+                                    : String(platformStats.total_papers),
+                                'Papers Analyzed'
+                            ],
+                            [`${platformStats.accuracy_rate}%`, 'Accuracy Rate'],
+                            [`<${platformStats.avg_analysis_secs}s`, 'Analysis Time'],
+                        ] : [
+                            ['—', 'Papers Analyzed'],
+                            ['—', 'Accuracy Rate'],
+                            ['—', 'Analysis Time'],
+                        ]).map(([val, label]) => (
                             <div key={label} style={s.stat}>
                                 <div style={s.statVal}>{val}</div>
                                 <div style={s.statLabel}>{label}</div>
@@ -121,15 +141,6 @@ export default function LoginPage() {
                         </button>
                     </form>
 
-                    <div style={s.divider}><span style={s.dividerText}>or continue with demo</span></div>
-
-                    <button style={s.demoBtn} onClick={() => { setEmail('demo@fraudlens.ai'); setPassword('demo1234'); }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ marginRight: 8 }}>
-                            <path d="M12 2L2 7l10 5 10-5-10-5z" stroke={colors.brand.primary} strokeWidth="2" strokeLinecap="round" />
-                        </svg>
-                        Use demo credentials
-                    </button>
-
                     <p style={s.switchText}>
                         Don't have an account?{' '}
                         <Link to="/signup" style={s.switchLink}>Create one free</Link>
@@ -195,18 +206,6 @@ const s: Record<string, React.CSSProperties> = {
         width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)',
         borderTopColor: '#fff', borderRadius: '50%',
         animation: 'spin 0.7s linear infinite',
-    },
-    divider: { display: 'flex', alignItems: 'center', margin: '24px 0', gap: 12 },
-    dividerText: {
-        fontSize: 12, color: colors.text.muted, whiteSpace: 'nowrap',
-        padding: '0 12px', background: colors.bg.base,
-        position: 'relative',
-    },
-    demoBtn: {
-        width: '100%', background: colors.bg.elevated, border: `1px solid ${colors.bg.border}`,
-        borderRadius: radius.md, color: colors.text.secondary, padding: '12px',
-        fontSize: 14, fontWeight: 500, cursor: 'pointer', display: 'flex',
-        alignItems: 'center', justifyContent: 'center',
     },
     switchText: { textAlign: 'center' as const, fontSize: 14, color: colors.text.muted, marginTop: 24 },
     switchLink: { color: colors.brand.primary, textDecoration: 'none', fontWeight: 500 },

@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../mysql');
-const mongoose = require('mongoose');
 const Paper = require('../models/Paper');
 const { requireAuth } = require('../middleware/auth');
 
