@@ -164,33 +164,7 @@ export default function ProfilePage() {
                         </form>
                     </div>
 
-                    {/* Security info */}
-                    <div style={s.card}>
-                        <div style={s.cardTitle}>Security</div>
-                        <div style={s.securityItem}>
-                            <div style={s.securityIcon}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke={colors.status.low} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                            </div>
-                            <div>
-                                <div style={s.securityLabel}>Session-based authentication</div>
-                                <div style={s.securityDesc}>Your session is secured with JWT tokens and server-side session validation.</div>
-                            </div>
-                        </div>
-                        <div style={s.securityItem}>
-                            <div style={s.securityIcon}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" stroke={colors.brand.primary} strokeWidth="1.8" />
-                                    <path d="M7 11V7a5 5 0 0110 0v4" stroke={colors.brand.primary} strokeWidth="1.8" strokeLinecap="round" />
-                                </svg>
-                            </div>
-                            <div>
-                                <div style={s.securityLabel}>Password hashing</div>
-                                <div style={s.securityDesc}>Passwords are hashed with bcrypt (cost factor 12) and never stored in plain text.</div>
-                            </div>
-                        </div>
-                    </div>
+    
                 </div>
             </div>
         </div>
