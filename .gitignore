@@ -6,3 +6,4 @@ uploads/
 faiss_indexes/
 dist/
 .DS_Store
+.kiro/
