@@ -6,7 +6,7 @@ import os
 import pickle
 import numpy as np
 import faiss
-from langchain_text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from modules.llm import embed_texts
 
 FAISS_STORE_PATH = os.getenv("FAISS_STORE_PATH", "./faiss_indexes")
