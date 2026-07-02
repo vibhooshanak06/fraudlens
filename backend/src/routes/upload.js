@@ -14,12 +14,14 @@ const router = express.Router();
 
 // ---------------------------------------------------------------------------
 // Supabase client (service role — can upload to any bucket)
+// Trim env vars to guard against copy-paste whitespace from Render/Railway.
 // ---------------------------------------------------------------------------
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'papers';
+const SUPABASE_URL = (process.env.SUPABASE_URL).trim();
+const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY).trim();
+const SUPABASE_BUCKET = (process.env.SUPABASE_BUCKET || 'papers').trim();
+
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ---------------------------------------------------------------------------
 // Multer — disk storage for temporary local file before Supabase upload
@@ -45,9 +47,13 @@ const upload = multer({
 // ---------------------------------------------------------------------------
 // Upload PDF to Supabase Storage and return a public URL
 // ---------------------------------------------------------------------------
-async function uploadToSupabase(localPath, originalName, uuid) {
-  const ext = path.extname(originalName) || '.pdf';
-  const storageKey = `${uuid}${ext}`;
+async function uploadToSupabase(localPath, uuid) {
+  // Always use uuid + .pdf — we know it's a PDF (enforced by multer fileFilter).
+  // Do NOT derive the extension from the original filename; it can be empty or
+  // contain characters that Supabase's path parser rejects.
+  const storageKey = `${uuid}.pdf`;
+
+  console.log(`Supabase upload → bucket: "${SUPABASE_BUCKET}", key: "${storageKey}"`);
 
   const fileBuffer = fs.readFileSync(localPath);
 
@@ -161,7 +167,7 @@ router.post('/', requireAuth, upload.single('file'), async (req, res) => {
 
   try {
     // 1. Upload to Supabase Storage
-    pdfUrl = await uploadToSupabase(localPath, req.file.originalname, uuid);
+    pdfUrl = await uploadToSupabase(localPath, uuid);
   } catch (err) {
     console.error('Supabase upload error:', err.message);
 
