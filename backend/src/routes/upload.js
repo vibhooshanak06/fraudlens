@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
+const cloudinary = require('../cloudinary');
 const pool = require('../mysql');
 const Paper = require('../models/Paper');
 const { requireAuth } = require('../middleware/auth');
@@ -27,11 +28,19 @@ const upload = multer({
   },
 });
 
-async function triggerAIEngine(uuid, pdfPath, userId) {
+async function triggerAIEngine(uuid, pdfUrl, userId) {
   const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:8000';
-  const absolutePath = path.resolve(pdfPath);
   try {
-    const response = await axios.post(`${aiEngineUrl}/process`, { uuid, pdf_path: absolutePath }, { timeout: 120000 });
+    const response = await axios.post(
+    `${aiEngineUrl}/process`,
+    {
+        uuid,
+        pdf_url: pdfUrl
+    },
+    {
+        timeout: 120000
+    }
+);
     const data = response.data || {};
     const fraudReport = data.fraud_report || {};
     const plagiarismScore = fraudReport.plagiarism_score ?? null;
@@ -60,8 +69,8 @@ async function triggerAIEngine(uuid, pdfPath, userId) {
         },
         $setOnInsert: {
           uuid,
-          filename: path.basename(absolutePath),
-          file_path: absolutePath,
+          filename: pdfUrl.split('/').pop(),
+          file_path: pdfUrl,
           expires_at: expiresAt,
         },
       },
@@ -81,27 +90,96 @@ async function triggerAIEngine(uuid, pdfPath, userId) {
   }
 }
 
+// router.post('/', requireAuth, upload.single('file'), async (req, res) => {
+//   if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+
+//   const uuid = uuidv4();
+//   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+//   const userId = req.user.id;
+
+//   const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+//     resource_type: "raw",
+//     folder: "FraudLens"
+// });
+
+//   const pdfUrl = uploadResult.secure_url;
+
+
+//   try {
+//     await pool.query(
+//       `INSERT INTO papers (uuid, user_id, filename, file_path, status, expires_at) VALUES (?, ?, ?, ?, 'processing', ?)`,
+//       [uuid, userId, req.file.originalname, pdfUrl, expiresAt]
+//     );
+
+
+//     triggerAIEngine(uuid, pdfUrl, userId);
+
+//     fs.unlink(req.file.path, () => {});
+
+//     return res.status(200).json({ uuid, status: 'processing' });
+//   } catch (err) {
+//     console.error('Upload error:', err.message);
+//     return res.status(500).json({ error: 'Failed to save paper record.' });
+//   }
+// });
+
 router.post('/', requireAuth, upload.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded.' });
+  }
 
   const uuid = uuidv4();
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const userId = req.user.id;
 
   try {
+
+    // Upload PDF to Cloudinary
+    const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+      resource_type: "raw",
+      folder: "FraudLens"
+    });
+
+    const pdfUrl = uploadResult.secure_url;
+
+    // Save paper metadata in MySQL
     await pool.query(
-      `INSERT INTO papers (uuid, user_id, filename, file_path, status, expires_at) VALUES (?, ?, ?, ?, 'processing', ?)`,
-      [uuid, userId, req.file.originalname, req.file.path, expiresAt]
+      `INSERT INTO papers
+      (uuid, user_id, filename, file_path, status, expires_at)
+      VALUES (?, ?, ?, ?, 'processing', ?)`,
+      [
+        uuid,
+        userId,
+        req.file.originalname,
+        pdfUrl,
+        expiresAt
+      ]
     );
 
-    triggerAIEngine(uuid, req.file.path, userId); // fire-and-forget
+    // Trigger AI Engine (don't wait)
+    triggerAIEngine(uuid, pdfUrl, userId);
 
-    return res.status(200).json({ uuid, status: 'processing' });
+    // Delete temporary local file
+    fs.unlink(req.file.path, () => {});
+
+    return res.status(200).json({
+      uuid,
+      status: "processing"
+    });
+
   } catch (err) {
-    console.error('Upload error:', err.message);
-    return res.status(500).json({ error: 'Failed to save paper record.' });
+    console.error("Upload error:", err);
+
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlink(req.file.path, () => {});
+    }
+
+    return res.status(500).json({
+      error: "Failed to process uploaded PDF."
+    });
   }
 });
+
 
 router.use((err, _req, res, _next) => {
   if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'File too large. Maximum size is 20 MB.' });

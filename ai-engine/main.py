@@ -16,6 +16,7 @@ from modules.summarizer import generate_summary
 from modules.chatbot import answer as chatbot_answer
 from modules.recommender import recommend as do_recommend
 from modules.citation_checker import get_citation_graph
+from modules.downloader import download_pdf
 
 app = FastAPI(title="FraudLens AI Engine")
 
@@ -52,7 +53,7 @@ def reset_mongo():
 
 class ProcessRequest(BaseModel):
     uuid: str
-    pdf_path: str
+    pdf_url: str
 
 
 class ChatRequest(BaseModel):
@@ -72,6 +73,7 @@ async def health():
 @app.post("/process")
 async def process(req: ProcessRequest):
     # Step 1: Extract text
+    temp_pdf = download_pdf(req.pdf_url)
     try:
         text = extract_text(req.pdf_path)
     except UnreadablePDFError as e:
@@ -80,6 +82,9 @@ async def process(req: ProcessRequest):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF extraction failed: {e}")
+    finally:
+        if os.path.exists(temp_pdf):
+            os.remove(temp_pdf)
 
     # Step 2: Run fraud detection, embedding, and summarization concurrently
     loop = asyncio.get_running_loop()
