@@ -6,16 +6,15 @@ const mysql = require('mysql2/promise');
 
 async function init() {
   const conn = await mysql.createConnection({
-    host: process.env.MYSQL_HOST || 'localhost',
-    user: process.env.MYSQL_USER || 'root',
-    password: process.env.MYSQL_PASSWORD || '',
-    multipleStatements: true,
-  });
+  host: process.env.MYSQL_HOST,
+  port: Number(process.env.MYSQL_PORT),
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DB,
+  multipleStatements: true,
+});
 
   console.log('Connected to MySQL');
-
-  await conn.query(`CREATE DATABASE IF NOT EXISTS fraudlens CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
-  await conn.query(`USE fraudlens;`);
 
   await conn.query(`
     CREATE TABLE IF NOT EXISTS users (
