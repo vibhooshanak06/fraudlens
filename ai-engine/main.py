@@ -72,6 +72,11 @@ class ReprocessRequest(BaseModel):
     uuid: str
 
 
+class CitationRequest(BaseModel):
+    uuid: str
+    pdf_url: str
+
+
 class ChatRequest(BaseModel):
     uuid: str
     question: str
@@ -260,23 +265,41 @@ async def recommend(req: RecommendRequest):
 
 
 # ---------------------------------------------------------------------------
-# POST /citation-graph  — build citation graph from stored MongoDB text
+# POST /citation-graph
+# Downloads the full PDF from Supabase, extracts complete (untruncated) text,
+# and builds the citation graph. Falls back to stored MongoDB text only if
+# the download or extraction fails.
 # ---------------------------------------------------------------------------
 
 @app.post("/citation-graph")
-async def citation_graph(req: ReprocessRequest):
-    """Build citation graph from a paper's stored extracted text."""
+async def citation_graph(req: CitationRequest):
     text = None
 
-    for _ in range(2):
-        try:
-            db = get_db()
-            doc = await db["papers"].find_one({"uuid": req.uuid})
-            if doc and doc.get("extracted_text"):
-                text = doc["extracted_text"]
-            break
-        except Exception:
-            reset_mongo()
+    # Primary: download PDF and extract full text (references section is at the
+    # end and is almost always truncated in the stored 50 000-char MongoDB copy)
+    temp_pdf = None
+    try:
+        temp_pdf = download_pdf(req.pdf_url)
+        text = extract_text(temp_pdf)
+        print(f"[citation-graph] Extracted {len(text)} chars from PDF for {req.uuid}")
+    except Exception as e:
+        print(f"[citation-graph] PDF extraction failed for {req.uuid}, falling back to MongoDB: {e}")
+    finally:
+        if temp_pdf and os.path.exists(temp_pdf):
+            os.remove(temp_pdf)
+
+    # Fallback: use stored extracted_text from MongoDB
+    if not text:
+        for _ in range(2):
+            try:
+                db = get_db()
+                doc = await db["papers"].find_one({"uuid": req.uuid})
+                if doc and doc.get("extracted_text"):
+                    text = doc["extracted_text"]
+                    print(f"[citation-graph] Using stored text ({len(text)} chars) for {req.uuid}")
+                break
+            except Exception:
+                reset_mongo()
 
     if not text:
         return {
@@ -291,6 +314,7 @@ async def citation_graph(req: ReprocessRequest):
 
     loop = asyncio.get_running_loop()
     graph = await loop.run_in_executor(None, get_citation_graph, text)
+    print(f"[citation-graph] {req.uuid}: {graph['stats']}")
     return {"uuid": req.uuid, "graph": graph}
 
 
