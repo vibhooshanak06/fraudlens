@@ -13,15 +13,33 @@ const { requireAuth } = require('../middleware/auth');
 const router = express.Router();
 
 // ---------------------------------------------------------------------------
-// Supabase client (service role — can upload to any bucket)
-// Trim env vars to guard against copy-paste whitespace from Render/Railway.
+// Supabase client — lazily initialised so a missing/placeholder URL does not
+// crash the server on startup. The client is created on first upload attempt.
 // ---------------------------------------------------------------------------
-const SUPABASE_URL = (process.env.SUPABASE_URL).trim();
-const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY).trim();
+let _supabase = null;
+
+function getSupabase() {
+  if (_supabase) return _supabase;
+
+  const url = (process.env.SUPABASE_URL || '').trim();
+  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+
+  if (!url || url.includes('<your-project-ref>')) {
+    throw new Error(
+      'SUPABASE_URL is not configured. Set a real value in backend/.env (see backend/.env.example).'
+    );
+  }
+  if (!key || key === 'your_supabase_service_role_key_here') {
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY is not configured. Set a real value in backend/.env.'
+    );
+  }
+
+  _supabase = createClient(url, key);
+  return _supabase;
+}
+
 const SUPABASE_BUCKET = (process.env.SUPABASE_BUCKET || 'papers').trim();
-
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ---------------------------------------------------------------------------
 // Multer — disk storage for temporary local file before Supabase upload
@@ -48,9 +66,8 @@ const upload = multer({
 // Upload PDF to Supabase Storage and return a public URL
 // ---------------------------------------------------------------------------
 async function uploadToSupabase(localPath, uuid) {
-  // Always use uuid + .pdf — we know it's a PDF (enforced by multer fileFilter).
-  // Do NOT derive the extension from the original filename; it can be empty or
-  // contain characters that Supabase's path parser rejects.
+  const supabase = getSupabase(); // throws with a clear message if creds are missing
+
   const storageKey = `${uuid}.pdf`;
 
   console.log(`Supabase upload → bucket: "${SUPABASE_BUCKET}", key: "${storageKey}"`);
