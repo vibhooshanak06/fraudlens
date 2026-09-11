@@ -3,6 +3,7 @@ LLM client using OpenRouter API (free models).
 Drop-in replacement for OpenAI client.
 """
 import os
+import re
 import json
 import urllib.request
 import urllib.error
@@ -10,15 +11,59 @@ import urllib.error
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 # Free models on OpenRouter — primary + fallback
-MODEL = os.getenv("OPENROUTER_MODEL", "liquid/lfm-2.5-1.2b-instruct:free")
+MODEL = os.getenv("OPENROUTER_MODEL", "liquid/lfm-2.5-2.6b:free")
 FALLBACK_MODELS = [
-    "liquid/lfm-2.5-1.2b-thinking:free",
-    "google/gemma-3-4b-it:free",
-    "meta-llama/llama-3.2-3b-instruct:free",
-    "mistralai/mistral-small-3.1-24b-instruct:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "nousresearch/hermes-3-llama-3.1-405b:free",
+    "nvidia/nemotron-3.5-lightning:free",
+    "thinkingmachines/inkling-small:free",
 ]
+
+
+def _strip_thinking(text: str) -> str:
+    """Remove internal reasoning/thinking blocks that some models leak into output.
+
+    Handles all known patterns:
+      - <think>...</think>  or  <thinking>...</thinking>
+      - "Here's a thinking process:" / "Here's my thinking:" preambles followed
+        by numbered steps, ending when the actual answer begins
+      - **Answer:** / **Response:** / **Final Answer:** section markers
+    """
+    # 1. XML-style think blocks
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r"<thinking>.*?</thinking>", "", text, flags=re.DOTALL | re.IGNORECASE)
+
+    # 2. "Here's a thinking process:" style preambles — strip everything up to
+    #    the first blank line that follows a numbered-list block, or up to a
+    #    recognisable answer marker.
+    thinking_header = re.search(
+        r"(?:here'?s?\s+(?:a\s+)?(?:my\s+)?thinking(?:\s+process)?[\s:]+)",
+        text, flags=re.IGNORECASE
+    )
+    if thinking_header:
+        after = text[thinking_header.start():]
+        # Look for the actual answer after the reasoning block.
+        # Gemma ends its thinking with a double newline before the real answer.
+        # We find the last numbered item block and take what comes after.
+        end_of_reasoning = re.search(
+            r"\n\n(?!\s*\d+[\.\)])",  # blank line NOT followed by another numbered item
+            after
+        )
+        if end_of_reasoning:
+            text = after[end_of_reasoning.end():]
+        else:
+            # Fallback: drop everything before the preamble header
+            text = text[:thinking_header.start()]
+
+    # 3. Explicit answer section markers
+    for marker in ("**Answer:**", "**Response:**", "**Final Answer:**",
+                   "Answer:", "Response:"):
+        lower = text.lower()
+        needle = marker.lower()
+        if lower.startswith(needle) or f"\n{needle}" in lower:
+            idx = lower.find(needle)
+            text = text[idx + len(marker):]
+            break
+
+    return text.strip()
 
 
 def _call_model(model: str, messages: list[dict], max_tokens: int, temperature: float) -> str:
@@ -44,7 +89,8 @@ def _call_model(model: str, messages: list[dict], max_tokens: int, temperature: 
 
     with urllib.request.urlopen(req, timeout=60) as resp:
         data = json.loads(resp.read().decode("utf-8"))
-        return data["choices"][0]["message"]["content"]
+        raw = data["choices"][0]["message"]["content"]
+        return _strip_thinking(raw)
 
 
 def chat_completion(messages: list[dict], max_tokens: int = 800, temperature: float = 0.2) -> str:
